@@ -27,14 +27,14 @@ class CPU {
 
     getRegister(name) {
         if (!(name in this.registerMap)) {
-            throw new Error("Get Register: Register `name` not found");
+            throw new Error(`Get Register: Register '${name}' not found`);
         }
         return this.registerMemory.getUint16(this.registerMap[name]);
     }
 
     setRegister(name, value) {
         if (!(name in this.registerMap)) {
-            throw new Error("Set Register: Register `name` not found");
+            throw new Error(`Set Register: Register '${name}' not found`);
         }
         return this.registerMemory.setUint16(this.registerMap[name], value);
     }
@@ -68,13 +68,13 @@ class CPU {
             }
 
             //Move Literal from Memory to Register
-            case instructionsSet.MOV_MEM_REG:{
-                const memoryLocation = this.fetch();
-                const m = this.memory.getUint16(memoryLocation);
-                const register = (this.fetch()%this.registerNames.length)*2;
-                this.setRegister(register,m)
+            case instructionsSet.MOV_MEM_REG: {
+                const address = this.fetch16();
+                const registerTo = (this.fetch() % this.registerNames.length) * 2;
+                const value = this.memory.getUint16(address);
+                this.registerMemory.setUint16(registerTo, value);
                 return;
-            }
+              }
 
             //Move Literal from Register to Memory
             case instructionsSet.MOV_REG_MEM:{
@@ -101,6 +101,15 @@ class CPU {
                 const registerValue1 = this.registerMemory.getUint16(r1 * 2);
                 const registerValue2 = this.registerMemory.getUint16(r2 * 2);
                 this.setRegister("acc", registerValue1 + registerValue2);
+                return;
+            }
+            
+            case instructionsSet.JMP_NOT_EQ:{
+                const value = this.fetch16();
+                const address = this.fetch16()
+                if(value!=this.getRegister('acc')){
+                    this.setRegister('ip',address);
+                }
                 return;
             }
         }
