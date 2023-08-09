@@ -58,17 +58,41 @@ class CPU {
     execute(instruction) {
         // console.log(instruction);
         switch (instruction) {
-            //Move Next 16 bits to r1
-            case instructionsSet.MOV_LIT_R1: {
-                this.setRegister("r1", this.fetch16());
+            //Move Next 16 bits to a register
+            case instructionsSet.MOV_LIT_REG: {
+                const value = this.fetch16();
+                const register = (this.fetch()%this.registerNames.length)*2;
+                console.log(value,register)
+                this.registerMemory.setUint16(register,value)
                 return;
             }
 
-            //Move Next 16 bits to r2
-            case instructionsSet.MOV_LIT_R2: {
-                this.setRegister("r2", this.fetch16());
+            //Move Literal from Memory to Register
+            case instructionsSet.MOV_MEM_REG:{
+                const memoryLocation = this.fetch();
+                const m = this.memory.getUint16(memoryLocation);
+                const register = (this.fetch()%this.registerNames.length)*2;
+                this.setRegister(register,m)
                 return;
             }
+
+            //Move Literal from Register to Memory
+            case instructionsSet.MOV_REG_MEM:{
+                const register = (this.fetch()%this.registerNames.length)*2;
+                const address = this.fetch16();
+                const value = this.registerMemory.getUint16(register);
+                this.memory.setUint16(address,value)
+                return;
+            }
+
+            //Move Literal from one register to another
+            case instructionsSet.MOV_REG_REG: {
+                const registerFrom = (this.fetch() % this.registerNames.length) * 2;
+                const registerTo = (this.fetch() % this.registerNames.length) * 2;
+                const value = this.registers.getUint16(registerFrom);
+                this.registers.setUint16(registerTo, value);
+                return;
+              }
 
             //Add values of two Registers
             case instructionsSet.ADD_REG_REG: {
@@ -82,7 +106,7 @@ class CPU {
         }
     }
 
-    step() {
+    step(address) {
         const fetchedInstruction = this.fetch();
         this.execute(fetchedInstruction);
         // console.log(this.registerMap);
@@ -92,6 +116,11 @@ class CPU {
             );
         });
         console.log();
+        this.viewMemoryAt(address)
+    }
+
+    viewMemoryAt(address){
+        console.log(this.memory.getUint16(address))
     }
 }
 
