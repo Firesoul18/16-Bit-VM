@@ -62,6 +62,22 @@ class CPU {
         return _16BitInstructionValue;
     }
 
+    push(value) {
+        const spAddress = this.getRegister('sp')
+        this.memory.setUint16(spAddress, value)
+        this.setRegister('sp', spAddress - 2)
+        this.stackFrameSize += 2
+    }
+
+    pop() {
+        const nextAddress = this.getRegister('sp') + 2;
+        console.log(nextAddress.toString(16))
+        const value = this.memory.getUint16(nextAddress)
+        this.stackFrameSize -= 2;
+        this.setRegister('sp', nextAddress);
+        return value;
+    }
+
     execute(instruction) {
         // console.log(instruction);
         switch (instruction) {
@@ -122,10 +138,7 @@ class CPU {
 
             case instructionsSet.PSH_LIT: {
                 const value = this.fetch16()
-                const spAddress = this.getRegister('sp')
-                this.memory.setUint16(spAddress, value)
-                this.setRegister('sp', spAddress - 2)
-                this.stackFrameSize += 2
+                this.push(value)
                 return;
             }
 
@@ -133,25 +146,92 @@ class CPU {
                 const registerLocation = this.fetch();
                 const registerIndex = (registerLocation % this.registerNames.length) * 2
                 const value = this.registerMemory.getUint16(registerIndex)
-                const spAddress = this.getRegister('sp')
-                this.memory.setUint16(spAddress, value)
-                this.setRegister('sp', spAddress - 2)
-                this.stackFrameSize += 2;
+                this.push(value)
                 return;
             }
 
             case instructionsSet.POP: {
-                const registerIndex = (this.fetch() % this.registerNames.length) * 2;
-                const nextSpAddress = this.getRegister('sp') + 2;
-                this.setRegister('sp', nextSpAddress)
-                this.stackFrameSize -= 2;
-                this.registerMemory.setUint16(registerIndex, this.memory.getUint16(nextSpAddress))
+                const registerIndex = (this.fetch() % this.registerNames.length) * 2
+                const value = this.pop();
+                this.registerMemory.setUint16(registerIndex, value)
+                return;
+            }
+
+            case instructionsSet.CAL_LIT: {
+                const address = this.fetch16();
+                this.push(this.getRegister('r1'));
+                this.push(this.getRegister('r2'));
+                this.push(this.getRegister('r3'));
+                this.push(this.getRegister('r4'));
+                this.push(this.getRegister('r5'));
+                this.push(this.getRegister('r6'));
+                this.push(this.getRegister('r7'));
+                this.push(this.getRegister('r8'));
+                this.push(this.getRegister('ip'));
+                this.push(this.stackFrameSize + 2)
+                this.setRegister('fp', this.getRegister('sp'));
+                this.setRegister('ip', address);
+                this.stackFrameSize = 0;
+
+                return
+            }
+
+            case instructionsSet.CAL_REG: {
+                const registerIndex = (this.fetch() % this.registerNames.length) * 2
+                const address = this.registerMemory.getUint16(registerIndex);
+                this.push(this.getRegister('r1'));
+                this.push(this.getRegister('r2'));
+                this.push(this.getRegister('r3'));
+                this.push(this.getRegister('r4'));
+                this.push(this.getRegister('r5'));
+                this.push(this.getRegister('r6'));
+                this.push(this.getRegister('r7'));
+                this.push(this.getRegister('r8'));
+                this.push(this.getRegister('ip'));
+                this.setRegister('ip', address)
+                this.push(this.stackFrameSize + 2)
+                this.setRegister('fp', this.getRegister('sp'));
+                this.stackFrameSize = 0;
+                return
+            }
+
+            case instructionsSet.RET: {
+                const framePointerAddress = this.getRegister('fp')
+                //Safely start from where we need to start
+                this.setRegister('sp', framePointerAddress);
+
+                this.stackFrameSize = this.pop();
+                const currentFrameSize = this.stackFrameSize;
+
+                this.setRegister('ip', this.pop());
+                this.setRegister('r8', this.pop());
+                this.setRegister('r7', this.pop());
+                this.setRegister('r6', this.pop());
+                this.setRegister('r5', this.pop());
+                this.setRegister('r4', this.pop());
+                this.setRegister('r3', this.pop());
+                this.setRegister('r2', this.pop());
+                this.setRegister('r1', this.pop());
+                this.setRegister('fp', framePointerAddress + currentFrameSize)
+
+                this.registerNames.forEach((t) => {
+                    console.log(
+                        t + ": 0x" + this.getRegister(t).toString(16).padStart(4, "0")
+                    );
+                });
+                console.log();
+
+                let n = this.pop();
+                while (n-- > 0) {
+                    this.pop();
+                }
+
                 return;
             }
         }
     }
 
-    step(address = null) {
+    step(address = null, size = 1) {
         const fetchedInstruction = this.fetch();
         this.execute(fetchedInstruction);
         // console.log(this.registerMap);
@@ -162,14 +242,20 @@ class CPU {
         });
         console.log();
         if (address != null) {
-            this.viewMemoryAt(address)
+            this.viewMemoryAt(address, size)
         }
         // this.viewMemoryAt(this.getRegister('sp'))
     }
 
-    viewMemoryAt(address) {
-        console.log(this.memory.getUint16(address))
-    }
+    viewMemoryAt(address, n = 8) {
+        // 0x0f01: 0x04 0x05 0xA3 0xFE 0x13 0x0D 0x44 0x0F ...
+        const nextNBytes = Array.from({length: n}, (_, i) =>
+          this.memory.getUint8(address + i)
+        ).map(v => `0x${v.toString(16).padStart(2, '0')}`);
+    
+        console.log(`0x${address.toString(16).padStart(4, '0')}: ${nextNBytes.join(' ')}`);
+        // console.log(this.execute('sp'))
+      }
 }
 
 module.exports = CPU;
