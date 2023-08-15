@@ -29,8 +29,8 @@ let i=0;
 const cpu = new CPU(MM)
 
 writableBytes[i++] = instruction.MOV_LIT_REG
-writableBytes[i++] = 0x22
-writableBytes[i++] = 0x32
+writableBytes[i++] = 0xff
+writableBytes[i++] = 0x67
 writableBytes[i++] = R1
 
 writableBytes[i++] = instruction.MOV_REG_MEM
