@@ -36,7 +36,7 @@ class MemoryMapper {
     setUint16(address,value){
         let region = this.findRegion(address)
         let finalAddress = region.remap ? address - region.start : address
-        return this.region.setUint16(address,value)
+        return region.device.setUint16(finalAddress,value)
     }
 
     getUint8(address) {

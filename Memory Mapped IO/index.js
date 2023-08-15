@@ -2,6 +2,7 @@ const CPU = require("./CPU");
 const createMemory = require("./Memory");
 const instruction = require('./Instructions')
 const MemoryMapper = require("./MemoryMapper");
+const createNewDevice = require("./CreateNewDevice")
 
 const IP = 0;
 const ACC = 1;
@@ -38,3 +39,5 @@ writableBytes[i++] = 0x30
 writableBytes[i++] = 0x10
 
 writableBytes[i++] = instruction.HLT
+
+cpu.run()
