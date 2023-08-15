@@ -1,4 +1,4 @@
-function createNewDevice(){
+function createOutputDevice(){
     return {
         getUint8 : ()=>0,
         getUint16: ()=>0,
@@ -11,4 +11,4 @@ function createNewDevice(){
     }
 }
 
-module.exports=createNewDevice
+module.exports=createOutputDevice
