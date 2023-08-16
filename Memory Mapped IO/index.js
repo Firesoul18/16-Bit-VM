@@ -28,16 +28,30 @@ let i=0;
 
 const cpu = new CPU(MM)
 
+function writeOnScreen(char,position){
+
+console.log(char,char.charCodeAt(0))
+
 writableBytes[i++] = instruction.MOV_LIT_REG
-writableBytes[i++] = 0xff
-writableBytes[i++] = 0x67
+writableBytes[i++] = 0x00
+writableBytes[i++] = char.charCodeAt(0)
 writableBytes[i++] = R1
 
 writableBytes[i++] = instruction.MOV_REG_MEM
 writableBytes[i++] = R1
 writableBytes[i++] = 0x30
-writableBytes[i++] = 0x10
+writableBytes[i++] = position
+
+}
+
+"Hello World".split().forEach((char,index)=>{
+    writeOnScreen(char,index)
+})
+
 
 writableBytes[i++] = instruction.HLT
+
+
+
 
 cpu.run()
