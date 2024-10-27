@@ -1,65 +1,68 @@
-const Parser = require('arcsecond')
-const {inspect} = require('util')
+const ParserGenerator = require('arcsecond')
 
-const deepLog = (x)=>{
-    console.log(inspect(x,{
-        depth:Infinity,
-        colors:true
-    }))
-}
-
-const asType = type => value => ({type,value})
-
-const mapJoin = (parser)=> parser.map(i=>i.join(''));
-
-const UpperOrLower = (s)=>{
-    Parser.choice[
-        Parser.str(s.toUpperCase()),
-        Parser.str(s.toLowerCase())
+const caseLess = (s) => ParserGenerator.choice(
+    [
+        ParserGenerator.str(s.toUpperCase()),
+        ParserGenerator.str(s.toLowerCase())
     ]
-}
+)
 
-const register = Parser.choice([
-    UpperOrLower("r1"),
-    UpperOrLower("r2"),
-    UpperOrLower("r3"),
-    UpperOrLower("r4"),
-    UpperOrLower("r5"),
-    UpperOrLower("r6"),
-    UpperOrLower("r7"),
-    UpperOrLower("r8"),
-    UpperOrLower("sp"),
-    UpperOrLower("fp"),
-    UpperOrLower("ip"),
-    UpperOrLower("acc"),
-]).map(asType("Register"))
+const asType = type=>value=>({type,value})
 
-const hexDigit = Parser.regex(/^[0-9A-Fa-f]/)
-const hexLiteral = Parser.char('$')
-.chain(()=>{mapJoin(Parser.many1(hexDigit))})
-.map(asType('HEX_LITERAL'))
+const register = ParserGenerator.choice([
+    caseLess('r1'),
+    caseLess('r2'),
+    caseLess('r3'),
+    caseLess('r4'),
+    caseLess('r5'),
+    caseLess('r6'),
+    caseLess('r7'),
+    caseLess('r8'),
+    caseLess('acc'),
+    caseLess('ip'),
+    caseLess('sp'),
+    caseLess('fp'),
+]).map(
+    result => {
+        "REGISTER",
+            result
+    }
+)
 
-const movLitToReg = Parser.coroutine(function *(){
-    yield UpperOrLower('mov')
-    yield Parser.whitespace
+const hexDigit = ParserGenerator.regex(/^[0-9A-Fa-f]/)
+const hexLiteral = ParserGenerator.char('$')
+    .chain(() => {
+        ParserGenerator.many1(hexDigit).map(digits => digits.join(''))
 
-    const arg1 = yield hexLiteral;
-
-    yield Parser.optionalWhitespace
-    yield Parser.char(',')
-    yield Parser.optionalWhitespace
-
-    const arg2 = yield register;
-    yield Parser.optionalWhitespace
-
-    return asType('INSTRUCTION')(
-        {
-            instruction: 'MOV_LIT_REG',
-            args: [arg1,arg2]
+    }).map(
+        x => {
+            "HEX_LITERAL",
+                x
         }
+
     )
+
+const movLitToReg = ParserGenerator.coroutine(
+    function*(){
+        yield caseLess("mov")
+        yield ParserGenerator.whitespace
+
+        const arg1 = yield hexLiteral
+
+        yield ParserGenerator.optionalWhitespace
+        yield ParserGenerator.char(',')
+        yield ParserGenerator.optionalWhitespace
+
+        const arg2 = yield register
+        yield ParserGenerator.optionalWhitespace
+
+        return {
+            type:"INSTRUCTION",
+            value:{
+                name:"MOV_LIT_REG",
+                args:[arg1,arg2]
+            }
+        }
 })
 
-
-const t = movLitToReg.run("mov $42, r4")
-deepLog(t)
+console.log(JSON.stringify(movLitToReg.run("mov $0a123 , R1")))
